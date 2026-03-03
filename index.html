@@ -609,7 +609,7 @@ function checkAlerts(){
       a.triggered=true;changed=true;
       // Web Notification
       if('Notification' in window&&Notification.permission==='granted'){
-        new Notification(`🔔 ${a.ticker} 提醒触发`,{body:`${a.ticker} 当前 $${fmt(d.price)} (${d.change>=0?'+':''}${fmt(d.change,2)}%)`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">✨</text></svg>'`});
+        new Notification('🔔 '+a.ticker+' 提醒触发',{body:a.ticker+' 当前 $'+fmt(d.price)+' ('+(d.change>=0?'+':'')+fmt(d.change,2)+'%)'});
       }
       if(a.sound){try{const ac=new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator();o.type='sine';o.frequency.value=880;o.connect(ac.destination);o.start();o.stop(ac.currentTime+0.3)}catch{}}
     }
@@ -692,7 +692,9 @@ async function fetchStocks(){
   let anyOk=false,anyFail=false;
   const results=await Promise.all(WATCHLIST.map(async w=>{
     try{
-      const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${w.ticker}?interval=1d&range=5d`);
+      // Try query2 first, fallback to query1
+      let r=await fetch(`https://query2.finance.yahoo.com/v8/finance/chart/${w.ticker}?interval=1d&range=5d`);
+      if(!r.ok){r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${w.ticker}?interval=1d&range=5d`)}
       if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.chart.error)throw new Error(d.chart.error.description||'err');
       const m=d.chart.result[0].meta,price=m.regularMarketPrice,prev=m.chartPreviousClose,change=prev?((price/prev)-1)*100:null;
       anyOk=true;return{...w,price,change,loaded:true};
