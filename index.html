@@ -776,13 +776,15 @@ async function fetchGlobalMarket(){
 
 function renderNews(){
   const news=[
-    {title:'SoFi 从 $33 跌至 $19，分析师称可能是"世代级入场点"',source:'Seeking Alpha',date:'2天前'},
-    {title:'AMD 获得 Meta $100B+ AI GPU 订单',source:'Reuters',date:'1周前'},
-    {title:'BTC 跌至 $69K，Fear & Greed 极度恐惧',source:'CoinDesk',date:'今天'},
-    {title:'Fed 维持利率不变，市场等待降息信号',source:'CNBC',date:'3天前'},
-    {title:'NuScale SMR 获得 NRC 许可，股价跌 42%',source:'Bloomberg',date:'1周前'},
+    {title:'SoFi 从 $33 跌至 $19，分析师称可能是"世代级入场点"',source:'Seeking Alpha',date:'2天前',url:'https://seekingalpha.com/article/4875241-sofis-reset-could-be-a-generational-entry-point'},
+    {title:'SoFi 股价暴跌，做空比例升至 10%',source:'Invezz',date:'1周前',url:'https://invezz.com/news/2026/02/23/sofi-stock-price-has-imploded-as-short-interest-hits-10-will-it-rebound/'},
+    {title:'SoFi Q4 营收突破 $10 亿，GAAP 净利 $1.74 亿',source:'Seeking Alpha',date:'4周前',url:'https://seekingalpha.com/article/4864854-sofi-technologies-blowout-q4-earnings-meet-fearful-market'},
+    {title:'AMD 获得 Meta $100B+ AI GPU 订单',source:'Reuters',date:'1周前',url:'https://www.reuters.com/technology/'},
+    {title:'Liquid AI 发布 1.2B 推理模型，仅需 900MB RAM',source:'DeepLearning.AI',date:'今天',url:'https://x.com/DeepLearningAI'},
+    {title:'Fed 维持利率不变，市场等待降息信号',source:'CNBC',date:'3天前',url:'https://www.cnbc.com/federal-reserve/'},
+    {title:'NuScale SMR 获得 NRC 许可，股价从高点跌 42%',source:'Bloomberg',date:'1周前',url:'https://www.bloomberg.com/energy'},
   ];
-  document.getElementById('newsList').innerHTML=news.map(n=>`<div class="news-item"><div class="title">${n.title}</div><div class="source">${n.source} · ${n.date}</div></div>`).join('');
+  document.getElementById('newsList').innerHTML=news.map(n=>`<div class="news-item"><a href="${n.url}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none"><div class="title" style="transition:color .2s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text)'">${n.title} <span style="font-size:11px;color:var(--muted)">↗</span></div></a><div class="source">${n.source} · ${n.date}</div></div>`).join('');
 }
 
 // ===== COUNTDOWN TIMER =====
