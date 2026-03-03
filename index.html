@@ -116,6 +116,22 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Di
 .port-btn.primary:hover{background:#00dd9a}
 .port-btn.danger{border-color:var(--red);color:var(--red)}
 
+/* Stock detail modal */
+.stock-detail{background:#1a1a24;border-radius:10px;padding:20px;margin-top:8px}
+.sd-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.sd-header .sd-ticker{font-size:24px;font-weight:700;color:var(--blue)}
+.sd-header .sd-name{font-size:13px;color:var(--muted);margin-top:2px}
+.sd-header .sd-price-big{font-size:28px;font-weight:700;text-align:right}
+.sd-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.sd-grid .sd-item{background:#12121a;border-radius:8px;padding:10px}
+.sd-grid .sd-item .sd-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sd-grid .sd-item .sd-val{font-size:15px;font-weight:700;margin-top:4px}
+.sd-links{display:flex;gap:8px;flex-wrap:wrap}
+.sd-link{padding:5px 12px;border-radius:8px;font-size:12px;color:var(--blue);text-decoration:none;border:1px solid rgba(79,172,254,.2);background:rgba(79,172,254,.08);transition:all .2s}
+.sd-link:hover{background:rgba(79,172,254,.2)}
+.sd-loading{color:var(--muted);font-size:13px;padding:12px 0}
+@media(max-width:768px){.sd-grid{grid-template-columns:1fr 1fr}}
+
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;display:none}
 .modal-overlay.show{display:flex}
@@ -722,22 +738,23 @@ function renderStocks(){
   tbody.innerHTML=data.map(s=>{
     const cc=changeCellClass(s.change);
     const err=(!s.loaded&&s.error)?`<span style="font-size:11px;color:var(--red)" title="${s.error}"> ⚠️</span>`:'';
-    return`<tr>
+    return`<tr onclick="toggleStockDetail('${s.ticker}')" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='#1a1a24'" onmouseout="this.style.background='transparent'">
       <td><span class="ticker">${s.ticker}</span>${err}</td>
       <td>${s.name}</td>
       <td style="text-align:right;font-weight:600">${s.price!=null?'$'+fmt(s.price):'—'}</td>
       <td style="text-align:right" class="change-cell ${cc}">${s.change!=null?(s.change>=0?'▲':'▼')+' '+Math.abs(s.change).toFixed(2)+'%':'—'}</td>
       <td style="text-align:right">${scoreBadge(s.score)}</td>
-    </tr>`}).join('');
+    </tr><tr id="detail-row-${s.ticker}" style="display:none"><td colspan="5" style="padding:0"><div id="detail-${s.ticker}"></div></td></tr>`}).join('');
 
   // Mobile cards
   document.getElementById('mobileStockCards').innerHTML=data.map(s=>{
     const cc=changeCellClass(s.change);
-    return`<div class="stock-card">
+    return`<div class="stock-card" onclick="toggleStockDetail('${s.ticker}','mobile')" style="cursor:pointer">
       <div class="sc-left"><div class="sc-ticker">${s.ticker}</div><div class="sc-name">${s.name}</div></div>
       <div class="sc-right"><div class="sc-price">${s.price!=null?'$'+fmt(s.price):'—'}</div>
         <div class="sc-change change-cell ${cc}">${s.change!=null?(s.change>=0?'▲':'▼')+' '+Math.abs(s.change).toFixed(2)+'%':'—'}</div></div>
       <div class="sc-bottom"><span>评分: ${s.score!=null?s.score:'—'}</span><span>${scoreGrade(s.score).grade}</span></div>
+      <div id="mobile-detail-${s.ticker}" style="display:none;grid-column:span 2"></div>
     </div>`}).join('');
 }
 
@@ -785,6 +802,121 @@ function renderNews(){
     {title:'NuScale SMR 获得 NRC 许可，股价从高点跌 42%',source:'Bloomberg',date:'1周前',url:'https://www.bloomberg.com/energy'},
   ];
   document.getElementById('newsList').innerHTML=news.map(n=>`<div class="news-item"><a href="${n.url}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none"><div class="title" style="transition:color .2s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text)'">${n.title} <span style="font-size:11px;color:var(--muted)">↗</span></div></a><div class="source">${n.source} · ${n.date}</div></div>`).join('');
+}
+
+// ===== STOCK DETAIL =====
+let _openDetail=null;
+let _detailCache={};
+
+function toggleStockDetail(ticker,mode){
+  const isMobile=mode==='mobile';
+  const rowId=isMobile?'mobile-detail-'+ticker:'detail-row-'+ticker;
+  const containerId=isMobile?'mobile-detail-'+ticker:'detail-'+ticker;
+  const el=document.getElementById(rowId);
+  if(!el)return;
+
+  // Close if already open
+  if(_openDetail===ticker){
+    el.style.display='none';
+    _openDetail=null;
+    return;
+  }
+
+  // Close previous
+  if(_openDetail){
+    const prev1=document.getElementById('detail-row-'+_openDetail);
+    const prev2=document.getElementById('mobile-detail-'+_openDetail);
+    if(prev1)prev1.style.display='none';
+    if(prev2)prev2.style.display='none';
+  }
+
+  _openDetail=ticker;
+  el.style.display=isMobile?'block':'table-row';
+  const container=document.getElementById(containerId);
+  container.innerHTML='<div class="sd-loading">加载中...</div>';
+
+  // Use cache if fresh (<5min)
+  if(_detailCache[ticker]&&Date.now()-_detailCache[ticker].ts<300000){
+    renderStockDetail(container,_detailCache[ticker].data,ticker);
+    return;
+  }
+
+  fetchStockDetail(ticker).then(data=>{
+    _detailCache[ticker]={data,ts:Date.now()};
+    renderStockDetail(container,data,ticker);
+  });
+}
+
+async function fetchStockDetail(ticker){
+  const info=WATCHLIST.find(w=>w.ticker===ticker)||{};
+  const base={ticker,name:info.name||ticker,score:info.score,rating:info.rating};
+
+  try{
+    let r=await fetch('https://query2.finance.yahoo.com/v8/finance/chart/'+ticker+'?interval=1d&range=3mo');
+    if(!r.ok)r=await fetch('https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?interval=1d&range=3mo');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(d.chart.error)throw new Error(d.chart.error.description);
+    const meta=d.chart.result[0].meta;
+    const closes=d.chart.result[0].indicators.quote[0].close||[];
+    const validCloses=closes.filter(c=>c!=null);
+    const price=meta.regularMarketPrice;
+    const prevClose=meta.chartPreviousClose;
+    const dayChange=prevClose?((price/prevClose)-1)*100:null;
+    const high52=meta.fiftyTwoWeekHigh;
+    const low52=meta.fiftyTwoWeekLow;
+    const vol=meta.regularMarketVolume;
+
+    // 3mo performance
+    const first=validCloses[0];
+    const pct3m=first?((price/first)-1)*100:null;
+
+    // 1w/1m from closes
+    const pct1w=validCloses.length>=5?((price/validCloses[validCloses.length-5])-1)*100:null;
+    const pct1m=validCloses.length>=21?((price/validCloses[validCloses.length-21])-1)*100:null;
+
+    return{...base,price,dayChange,high52,low52,vol,pct1w,pct1m,pct3m,prevClose,loaded:true};
+  }catch(e){
+    // Use existing data from watchlist
+    const s=_stockData.find(s=>s.ticker===ticker);
+    return{...base,price:s?.price,dayChange:s?.change,loaded:false,error:e.message};
+  }
+}
+
+function renderStockDetail(container,d,ticker){
+  const chgHtml=(v,suffix='%')=>{
+    if(v==null)return'<span style="color:var(--muted)">—</span>';
+    const c=v>=0?'var(--green)':'var(--red)';
+    return`<span style="color:${c};font-weight:700">${v>=0?'+':''}${v.toFixed(2)}${suffix}</span>`;
+  };
+
+  container.innerHTML=`<div class="stock-detail">
+    <div class="sd-header">
+      <div><div class="sd-ticker">${d.ticker}</div><div class="sd-name">${d.name||''}</div></div>
+      <div style="text-align:right">
+        <div class="sd-price-big">${d.price?'$'+fmt(d.price):'—'}</div>
+        <div style="font-size:14px">${d.dayChange!=null?chgHtml(d.dayChange)+' 今日':''}</div>
+      </div>
+    </div>
+    <div class="sd-grid">
+      <div class="sd-item"><div class="sd-label">前收</div><div class="sd-val">${d.prevClose?'$'+fmt(d.prevClose):'—'}</div></div>
+      <div class="sd-item"><div class="sd-label">成交量</div><div class="sd-val">${d.vol?fmtB(d.vol):'—'}</div></div>
+      <div class="sd-item"><div class="sd-label">52周高</div><div class="sd-val">${d.high52?'$'+fmt(d.high52):'—'}</div></div>
+      <div class="sd-item"><div class="sd-label">52周低</div><div class="sd-val">${d.low52?'$'+fmt(d.low52):'—'}</div></div>
+      <div class="sd-item"><div class="sd-label">1周</div><div class="sd-val">${chgHtml(d.pct1w)}</div></div>
+      <div class="sd-item"><div class="sd-label">1月</div><div class="sd-val">${chgHtml(d.pct1m)}</div></div>
+      <div class="sd-item"><div class="sd-label">3月</div><div class="sd-val">${chgHtml(d.pct3m)}</div></div>
+      <div class="sd-item"><div class="sd-label">Lumi 评分</div><div class="sd-val">${scoreBadge(d.score)}</div></div>
+    </div>
+    ${d.error?'<div style="font-size:12px;color:var(--amber);margin-bottom:12px">⚠️ 部分数据加载失败: '+d.error+'</div>':''}
+    <div class="sd-links">
+      <a class="sd-link" href="https://finance.yahoo.com/quote/${d.ticker}/" target="_blank" rel="noopener">Yahoo Finance ↗</a>
+      <a class="sd-link" href="https://stockanalysis.com/stocks/${d.ticker.toLowerCase()}/" target="_blank" rel="noopener">StockAnalysis ↗</a>
+      <a class="sd-link" href="https://www.google.com/finance/quote/${d.ticker}:NASDAQ" target="_blank" rel="noopener">Google Finance ↗</a>
+      <a class="sd-link" href="https://seekingalpha.com/symbol/${d.ticker}" target="_blank" rel="noopener">Seeking Alpha ↗</a>
+      ${REPORTS.find(r=>r.ticker===d.ticker&&r.pdf)?'<a class="sd-link" href="'+REPORTS.find(r=>r.ticker===d.ticker).pdf+'" target="_blank" style="color:var(--green);border-color:rgba(0,255,180,.2);background:rgba(0,255,180,.08)">📄 Lumi 报告</a>':''}
+    </div>
+  </div>`;
 }
 
 // ===== COUNTDOWN TIMER =====
