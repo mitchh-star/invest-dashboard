@@ -398,23 +398,23 @@ const WATCHLIST = [
 ];
 
 const REPORTS = [
-  { ticker:'SOFI',title:'SoFi Technologies 投资分析',score:75,date:'2026-03-02',cat:'stock',
+  { ticker:'SOFI',title:'SoFi Technologies 投资分析',score:75,date:'2026-03-02',cat:'stock',pdf:'reports/SOFI.pdf',
     summary:'75/100 买入。PEG 0.76，FY2025首次盈利$4.81亿，营收+35.6%。银行牌照+Galileo双重护城河。',
     risks:['股份稀释+13.65%','个人贷款信用风险集中','Beta 2.18 高波动'],
     conclusion:'$17-19 建仓 30-40%，目标 $28-35' },
-  { ticker:'AMD',title:'AMD 全面分析报告',score:80,date:'2026-03-01',cat:'stock',
+  { ticker:'AMD',title:'AMD 全面分析报告',score:80,date:'2026-03-01',cat:'stock',pdf:'reports/AMD.pdf',
     summary:'80/100 Strong。Forward PE 29.5x，PEG 0.62。Meta $100B+ AI GPU订单催化。数据中心收入暴涨。',
     risks:['NVIDIA 竞争压力','PC 市场周期','估值不便宜'],
     conclusion:'$190-200 买入区间，长期看好 AI GPU 赛道' },
-  { ticker:'BTC',title:'BTC 投资分析与策略',score:null,date:'2026-03-01',cat:'crypto',
+  { ticker:'BTC',title:'BTC 投资分析与策略',score:null,date:'2026-03-01',cat:'crypto',pdf:'reports/BTC.pdf',
     summary:'$69,423，Fear & Greed 10 极度恐惧。ATH $126K (-44.9%)。机构持有 114.5万 BTC。',
     risks:['宏观紧缩','监管风险','流动性收缩'],
     conclusion:'保守4批建仓 $69K→$60K→$48K，最多15-20%仓位' },
-  { ticker:'BE',title:'Bloom Energy 深度报告',score:70,date:'2026-02-28',cat:'stock',
+  { ticker:'BE',title:'Bloom Energy 深度报告',score:70,date:'2026-02-28',cat:'stock',pdf:'reports/BE.pdf',
     summary:'70/100 买入。固体氧化物燃料电池龙头，数据中心电力需求驱动增长。',
     risks:['持续亏损','氢能竞争','客户集中'],
     conclusion:'长期看好清洁能源赛道，控制仓位' },
-  { ticker:'DRONE',title:'无人机板块五公司报告',score:null,date:'2026-02-28',cat:'stock',
+  { ticker:'DRONE',title:'无人机板块五公司报告',score:null,date:'2026-02-28',cat:'stock',pdf:'reports/DRONE.pdf',
     summary:'AVAV(7/10) > RCAT(5/10) > UMAC(4/10) > ONDS(4/10) > DPRO(3/10)。47页综合报告。',
     risks:['国防预算依赖','技术迭代快','监管不确定'],
     conclusion:'AVAV 稳健配置，RCAT 小仓投机' },
@@ -648,6 +648,7 @@ function renderReports(){
       <div class="rpt-summary">${r.summary||''}</div>
       ${r.conclusion?`<div style="margin-top:6px;font-size:13px"><strong style="color:var(--green)">结论：</strong>${r.conclusion}</div>`:''}
       ${r.risks?`<div class="rpt-tags">${r.risks.map(x=>`<span class="rpt-tag risk">⚠️ ${x}</span>`).join('')}</div>`:''}
+      ${r.pdf?`<div style="margin-top:8px"><a href="${r.pdf}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:8px;background:rgba(79,172,254,.12);color:var(--blue);text-decoration:none;font-size:13px;font-weight:600;border:1px solid rgba(79,172,254,.2);transition:all .2s" onmouseover="this.style.background='rgba(79,172,254,.25)'" onmouseout="this.style.background='rgba(79,172,254,.12)'">📄 查看 PDF</a> <a href="${r.pdf}" download style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:8px;background:rgba(100,100,100,.1);color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--border);transition:all .2s;margin-left:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↓ 下载</a></div>`:''}
     </div>`).join(''):'<div style="color:var(--muted);padding:16px;text-align:center">无匹配报告</div>';
 }
 
